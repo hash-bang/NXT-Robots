@@ -1,0 +1,2 @@
+# Ignore ./pipes/ as its populated by FIFO block objects which should be cleaned up anyway
+pipes

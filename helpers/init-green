@@ -1,0 +1,7 @@
+#!/bin/bash
+echo "Setting up Green..."
+cd ..
+rm pipes/Green
+mkfifo pipes/Green
+chmod 0777 pipes/Green
+daemon Green '00:16:53:0e:5c:f0' pipes/Green

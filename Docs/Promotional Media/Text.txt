@@ -1,0 +1,10 @@
+This display shows the technology in use at the School of IT in the Web Applications course (for the interface on your phone), Unix administration (for the backend server), Networking (for the WiFi and DNS configuration) and the newly opened mobility lab which supplies the various phones used for testing. 
+
+Instructions:
+
+* Use your phone to connect to the 'Bond IT Robotics' WiFi point.
+* Open any webpage (or your regular home page).
+* Enter your initials, a nickname or however you want to be known.
+* Wait for the Bond staff member to start the race. You will see a touch screen dial on your phone when you can move the robot around.
+* Drag your finger around the dial to control the robot.
+* After the race is over you will be disconnected from the robot controls. You can queue up again if you want.

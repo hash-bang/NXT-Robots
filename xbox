@@ -1,0 +1,72 @@
+#!/usr/bin/perl
+# Usage: xbox <color>
+# Color denotes a FIFO pipe in pipes/
+# Script to control the NXT robots via an XBox remote
+# This script assumes you have already set up the XboxDrv joystick handler (see ./start-xbox)
+use IO::Handle;
+use Linux::Joystick;
+use utf8;
+use Carp;
+
+$jsno = shift;
+$color = shift;
+print "Color: $color\n";
+
+STDERR->autoflush(1);
+STDOUT->autoflush(1);
+my $js = new Linux::Joystick($jsno);
+my $event;
+my $motors = {'L' => 0, 'R' => 0};
+
+unless ($js) {
+	print "No joystick found\n";
+	exit 1;
+}
+
+open(PIPE, ">pipes/$color") or croak("Cannot open pipe for writing\n");
+PIPE->autoflush(1);
+print "Waiting for input...\n";
+while($event = $js->nextEvent) {
+	if($event->isButton) {
+		if ($event->button == 6 && $event->buttonDown) {
+			print PIPE "HONK\n";
+		} elsif ($event->button == 4 && $event->buttonDown) {
+			print PIPE "HONK\n";
+		} else {
+			print "Button " . $event->button;
+			if($event->buttonDown) {
+				print " pressed\n";
+			} else {
+				print " released\n";
+			} 
+		}
+	} elsif($event->isAxis) {
+		my $motor = 0;
+		my $power = 0;
+		$motor = 'L' if $event->axis == 1;
+		$motor = 'R' if $event->axis == 3;
+
+		if ($motor) {
+			if ($event->axisValue < 0) {
+				$power = int($event->axisValue / -33000 * 100);
+			} elsif ($event->axisValue > 0) {
+				$power = 0 - int($event->axisValue / 33000 * 100);
+			} else {
+				$power = 0;
+			}
+			
+			# Power bias
+			$power = 100 if $power > 90; # Bias for full power
+			$power = -100 if $power < -90; # Bias for reverse power
+			$power = 0 if $power > -10 and $power < 10;
+
+			next if ($motors{$motor} == $power);
+			$motors{$motor} = $power;
+
+			print "Motor #$motor to $power\n";
+			print PIPE "$motor$power\n"
+		}
+		
+	}
+}
+close(PIPE);

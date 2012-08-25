@@ -1,0 +1,10 @@
+* For promiscuous wireless
+	* Plug server into Lynksys OpenWRT and turn on Bind to the settings in bind using bind.tbz as the ruleset
+	* Ensure that the server ip is 192.168.1.250
+	* Connect another box to LAN check that any web page pulled up is diverted to 192.168.1.250 which should serve the Robot client web pages
+* For Robot webpages
+	* Boot MySQL
+	* Bind the robot web pages to /var/www (served via 192.168.1.250 if you want promiscuous)
+	* Open browser to admin pages: /admin
+	* Boot ./go-* servers to control each robot
+* From any client view any webpage to get the robots signin page

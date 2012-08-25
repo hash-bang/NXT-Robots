@@ -1,0 +1,157 @@
+#!/usr/bin/perl
+use Carp;
+use Glib;
+use Glib qw/TRUE FALSE/;
+use LEGO::NXT;
+use LEGO::NXT::BlueComm;
+use LEGO::NXT::Constants;
+use Term::ReadKey;
+
+# Simple internal command to control motors
+# $motor - 1 to 3
+# $power - -100 to 100
+sub set_motor {
+	our $nxt;
+	my $motor = shift;
+	my $power = shift;
+
+	$motor = $NXT_MOTOR_A if $motor == 1;
+	$motor = $NXT_MOTOR_B if $motor == 2;
+	$motor = $NXT_MOTOR_C if $motor == 3;
+
+	if ($power) {
+		$nxt->set_output_state(
+			$NXT_NORET,
+			$motor,
+			$power,
+			$NXT_MOTOR_ON|$NXT_REGULATED,
+			$NXT_REGULATION_MODE_MOTOR_SPEED, 0,
+			$NXT_MOTOR_RUN_STATE_RUNNING, 0,
+		);
+	} else {
+		$nxt->set_output_state(
+			$NXT_NORET,
+			$motor,
+			$power,
+			$NXT_BRAKE,
+			$NXT_REGULATION_MODE_MOTOR_SPEED, 0,
+			$NXT_MOTOR_RUN_STATE_RUNNING, 0,
+		);
+	}
+}
+
+sub say {
+	print STDERR "$alias> " . $_[0] . "\n";
+}
+
+our $alias = shift;
+my $mac = shift;
+my $pipe = shift;
+croak("No alias, mac or pipe specified in command") unless $alias and $mac and $pipe;
+croak("Pipe '$pipe' not found") unless (-p $pipe);
+
+say('Connecting...');
+our $nxt = LEGO::NXT->new( new LEGO::NXT::BlueComm($mac,1));
+
+croak("$alias> Cannot connect") unless $nxt->play_sound_file($NXT_RET, 0,'! Attention.rso');
+say('Connection established');
+
+say("Opening pipe '$pipe'...");
+open($PIPE, "+<$pipe") or croak("Cannot open named pipe");
+say("Waiting for commands...");
+
+while(<$PIPE>) {
+	chomp;
+	next unless $_;
+	foreach (split(/\&/)) { # Accept mutliple commands seperated by '&'
+		say("Recieved command '$_'");
+		if (my ($motor, $power) = ($_ =~ /^(B|R|L)(-?[0-9]+)$/)) { # L-100, L000, L100 - Set power on left motor, R-100... etc... set on right motor
+			say("Set $motor motor = $power%");
+			if ($power > 100) {
+				say("Maxed out $motor motor power to 100)");
+				$power = 100;
+			} elsif ($power < -100) {
+				say("Minned out $motor motor power to -100");
+				$power = -100;
+			}
+			set_motor(3, $power) if ($motor eq 'L' || $motor eq 'B');
+			set_motor(1, $power) if ($motor eq 'R' || $motor eq 'B');
+		} elsif ($_ eq 'HONK') { # HONK - Play a sound
+			say("Honking");
+			$nxt->play_sound_file($NXT_NORET, 0,'! Click.rso');
+		} elsif ($_ eq 'DIE') { # DIE - Quit
+			say('Suicide!');
+			exit 0;
+		}
+	}
+}
+
+close $PIPE;
+exit 0;
+
+__END__
+
+=head1 NAME
+
+Daemon - NXT Daemon command center
+
+=head1 SYNOPSIS
+	Daemon <Alias> <Mac> <Pipe>
+
+=head1 OPTIONS
+
+=over 8
+
+=item B<Alias>
+
+The internal alias of the NXT drone. This can be any string and is really only used for debugging purposes
+
+=item B<Mac>
+
+The MAC address of the NXT drone to bind to. A beeping noise will be heard upon a successful bind.
+
+=item B<Pipe>
+
+The incomming FIFO pipe to accept commands on. This can be easily created with 'mkfifo'.
+
+=back
+
+=head1 DESCRIPTION
+
+A simple listener daemon for an NXT drone which reads from a FIFO pipe and executes commands in serial.
+
+=head1 COMMANDS
+
+=over
+
+=item B<L000>
+
+Change the left motor to the power level indicated. Can be -100 to 100 or 0 for off.
+
+=item B<R000>
+
+Change the right motor to the power level indicated. Can be -100 to 100 or 0 for off.
+
+=item B<B000>
+
+Change both motors. See L000 and R000 for definitions.
+
+=item B<HONK>
+
+Make a noise.
+
+=item B<DIE>
+
+The daemon will kill itself and clean up.
+
+=back
+
+=head1 BUGS
+
+Quite probably. Please report to the author if found.
+
+=head1 AUTHOR
+
+Matt Carter <m@ttcarter.com>
+
+=cut

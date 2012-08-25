@@ -1,0 +1,88 @@
+#!/usr/bin/perl
+# Simple script to demonstrate controlling a LEGO NXT robot via the keyboard
+
+use Glib;
+use Glib qw/TRUE FALSE/;
+use LEGO::NXT;
+use LEGO::NXT::BlueComm;
+use LEGO::NXT::Constants;
+use Term::ReadKey;
+
+$|++;
+ReadMode('cbreak');
+
+my $main_loop = Glib::MainLoop->new;
+
+print "Connecting...\n";
+our $nxt = LEGO::NXT->new( new LEGO::NXT::BlueComm('00:16:53:0c:6d:98',1));
+
+croak('Cannot connect') unless $nxt->play_sound_file($NXT_RET, 0,'! Attention.rso');
+print "Connection established\n";
+
+# Simple internal command to control motors
+# $motor - 1 to 3
+# $power - -100 to 100
+sub set_motor {
+	our $nxt;
+	my $motor = shift;
+	my $power = shift;
+
+	$motor = $NXT_MOTOR_A if $motor == 1;
+	$motor = $NXT_MOTOR_B if $motor == 2;
+	$motor = $NXT_MOTOR_C if $motor == 3;
+
+	if ($power) {
+		$nxt->set_output_state(
+			$NXT_NORET,
+			$motor,
+			$power,
+			$NXT_MOTOR_ON|$NXT_REGULATED,
+			$NXT_REGULATION_MODE_MOTOR_SPEED, 0,
+			$NXT_MOTOR_RUN_STATE_RUNNING, 0,
+		);
+	} else {
+		$nxt->set_output_state(
+			$NXT_NORET,
+			$motor,
+			$power,
+			$NXT_BRAKE,
+			$NXT_REGULATION_MODE_MOTOR_SPEED, 0,
+			$NXT_MOTOR_RUN_STATE_RUNNING, 0,
+		);
+	}
+}
+
+Glib::Idle->add(sub{
+	my $char;
+	if (defined ($char = ReadKey(0)) ) {
+		print "$char->", ord($char),"\n";    
+		#process key presses here
+		if ($char eq 'q') {
+			print "LEFT ON!\n";
+			set_motor(3, 100);
+		} elsif ($char eq 'a') {
+			print "LEFT OFF!\n";
+			set_motor(3, 0);
+		} elsif ($char eq 'z') {
+			print "LEFT REVERSE!\n";
+			set_motor(3, -100);
+		} elsif ($char eq 'w') {
+			print "RIGHT ON!\n";
+			set_motor(1, 100);
+		} elsif ($char eq 's') {
+			print "RIGHT OFF!\n";
+			set_motor(1, 0);
+		} elsif($char eq 'x') {
+			print "RIGHT REVERSE!\n";
+			set_motor(1, -100);
+		} elsif($char eq ' ') {
+			print "Play sound\n";
+			#$nxt->play_sound_file($NXT_NORET, 0,'! Attention.rso');
+			$nxt->play_sound_file($NXT_NORET, 0,'! Click.rso');
+			#$nxt->play_sound_file($NXT_NORET, 0,'! Startup.rso');
+		}
+	}
+	return TRUE; #keep going
+});
+       
+$main_loop->run;

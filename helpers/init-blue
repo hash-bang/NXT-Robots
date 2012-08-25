@@ -1,0 +1,7 @@
+#1/bin/bash
+echo "Setting up Blue..."
+cd ..
+rm pipes/Blue
+mkfifo pipes/Blue
+chmod 0777 pipes/Blue
+daemon Blue '00:16:53:0c:6d:98' pipes/Blue

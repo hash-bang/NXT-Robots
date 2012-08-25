@@ -1,0 +1,7 @@
+#!/bin/bash
+echo "Setting up Yellow..."
+cd ..
+rm pipes/Yellow
+mkfifo pipes/Yellow
+chmod 0777 pipes/Yellow
+daemon Yellow '00:16:53:0b:04:20' pipes/Yellow
